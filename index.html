@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avis</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: transparent;
+    }
+    .widget {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      padding: 1.2rem 1.4rem;
+      text-align: center;
+      width: 100%;
+      max-width: 260px;
+    }
+    h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 1rem;
+      letter-spacing: -0.2px;
+    }
+    .btns { display: flex; gap: 10px; justify-content: center; }
+    .btn {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      border: none; border-radius: 14px;
+      padding: 10px 20px;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    }
+    .btn:hover { transform: scale(1.06); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .btn .icon { font-size: 28px; line-height: 1; }
+    .btn.yes { background: #4caf50; color: white; }
+    .btn.no  { background: #e53935; color: white; }
+    .thanks {
+      display: none;
+      font-size: 15px; font-weight: 500; color: #444;
+    }
+    #loading { font-size: 13px; color: #aaa; }
+  </style>
+</head>
+<body>
+<div class="widget">
+  <h2>Ce site vous plaît&nbsp;?</h2>
+  <div id="loading">Chargement...</div>
+  <div id="btns" class="btns" style="display:none;">
+    <button class="btn yes" id="btn-yes">
+      <span class="icon">👍</span>
+      <span>Oui</span>
+    </button>
+    <button class="btn no" id="btn-no">
+      <span class="icon">👎</span>
+      <span>Non</span>
+    </button>
+  </div>
+  <div class="thanks" id="thanks"></div>
+</div>
+
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxUr9ooOvXG3v4Mo4XhsCvB2rDtjPqJALtIVnO-bKOzPx6HY1M33g_ku5Dx_9nfpBbAVw/exec";
+
+  function setCookie(name, value, days) {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = name + "=" + value + "; expires=" + expires + "; path=/; SameSite=None; Secure";
+  }
+
+  function getCookie(name) {
+    return document.cookie.split("; ").reduce((acc, part) => {
+      const [k, v] = part.split("=");
+      return k === name ? v : acc;
+    }, null);
+  }
+
+  function hasVoted() {
+    // On essaie cookie en priorité, puis localStorage en fallback
+    if (getCookie("a_vote")) return true;
+    try { if (localStorage.getItem("a_vote")) return true; } catch(e) {}
+    return false;
+  }
+
+  function persistVote(choice) {
+    setCookie("a_vote", choice, 365);
+    try { localStorage.setItem("a_vote", choice); } catch(e) {}
+  }
+
+  function showThanks(choice) {
+    document.getElementById("btns").style.display = "none";
+    document.getElementById("loading").style.display = "none";
+    const thanks = document.getElementById("thanks");
+    if (choice === "no") {
+      thanks.innerHTML = 'Dites-moi pourquoi à <a href="mailto:contact@aurelien-conseiller.fr" style="color:#1a73e8;text-decoration:none;font-weight:600;">contact@aurelien-conseiller.fr</a>&nbsp;!';
+    } else {
+      thanks.textContent = "Merci pour votre avis\u00a0!";
+    }
+    thanks.style.display = "block";
+  }
+
+  function showAlreadyVoted() {
+    document.getElementById("btns").style.display = "none";
+    document.getElementById("loading").style.display = "none";
+    const thanks = document.getElementById("thanks");
+    thanks.textContent = "Vous avez déjà voté.";
+    thanks.style.display = "block";
+  }
+
+  document.getElementById("btn-yes").addEventListener("click", () => vote("yes"));
+  document.getElementById("btn-no").addEventListener("click", () => vote("no"));
+
+  setTimeout(() => {
+    document.getElementById("loading").style.display = "none";
+    if (hasVoted()) {
+      showAlreadyVoted();
+    } else {
+      document.getElementById("btns").style.display = "flex";
+    }
+  }, 600);
+
+  function vote(choice) {
+    persistVote(choice);
+    showThanks(choice);
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ vote: choice })
+    }).catch(() => {});
+  }
+</script>
+</body>
+</html>
